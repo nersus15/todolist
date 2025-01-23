@@ -207,7 +207,10 @@ class TasksService {
 
         try {
             await this.verifyOwner(id, userId);
-
+            if(!Array.isArray(users)){
+                throw new InvariantError('Users must in array of string');
+            }
+            
             if(users.length == 0){
                 throw new InvariantError('Unshare task from 1 or more users');
             }
@@ -216,7 +219,7 @@ class TasksService {
                 await this.db.where('user', user).where('todo', id).delete_async('collaborations');
             });
 
-            res.status(200).json({users});
+            res.status(200).json({status: 'success', message: `Berhasil menghapus user ${users.join(', ')} dari daftar sharing`});
         } catch (error) {
             res.status(error.statusCode).json({message: error.message, status: 'fail'});
         }
