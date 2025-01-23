@@ -4,7 +4,7 @@ This API was created using express js and using mysql as database
 
 # How To Use
 1. Download file zip di menu 'code'
-2. extract file zip di folder yang diinginkan, rubah nama folder dari 'todolist-master' ke 'todolist'
+2. extract file zip di folder yang diinginkan, rubah nama folder dari 'todolist-main' ke 'todolist'
 3. buat database dengan nama todolist
 4. import file todolist.sql kedalam database yang sudah dibuat
 5. setelah selesai, buka vscode dan open folder todolist (menu file->open folder)
