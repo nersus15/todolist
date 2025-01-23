@@ -6,7 +6,7 @@ const AuthorizationError = require("../Exceptions/AuthorizationError");
 const { formatDate, formatDateTime } = require("../utils");
 
 class TasksService {
-    constructor(){
+    constructor() {
         // Connect to db
         const query_builder = require('mysql-querybuilder-nodejs');
         const db = query_builder(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASS, process.env.DB_HOST, process.env.DB_PORT);
@@ -15,36 +15,8 @@ class TasksService {
         autoBind(this);
     }
 
-    async getAllTasks(req, res){
-        const {userId} = req;
-
-        // Get all my tasks
-        const tasks = await this.db.select('*')
-            .where('owner', userId)
-            .where('todo.deleted_at IS NULL', '', '', false)
-            .order_by('created_at').results_async('todo');
-        
-        // Get all shared tasks
-        const shared = await this.db.select('todo.*')
-            .where('collaborations.user', userId)
-            .where('todo.deleted_at IS NULL', '', '', false)
-            .from('todo').join('collaborations', 'collaborations.todo = todo.id').order_by('created_at').results_async();
-        res.status(200).json({tasks, shared});
-    }
-
-    async getSharedTasks(req, res){
-        const {userId} = req;
-
-        // Get all shared tasks
-        const shared = await this.db.select('todo.*')
-            .where('collaborations.user', userId)
-            .where('todo.deleted_at IS NULL', '', '', false)
-            .from('todo').join('collaborations', 'collaborations.todo = todo.id').order_by('created_at').results_async();
-        res.status(200).json({shared});
-    }
-
-    async getMyTasks(req, res){
-        const {userId} = req;
+    async getAllTasks(req, res) {
+        const { userId } = req;
 
         // Get all my tasks
         const tasks = await this.db.select('*')
@@ -52,88 +24,115 @@ class TasksService {
             .where('todo.deleted_at IS NULL', '', '', false)
             .order_by('created_at').results_async('todo');
 
-        res.status(200).json({tasks});
+        // Get all shared tasks
+        const shared = await this.db.select('todo.*')
+            .where('collaborations.user', userId)
+            .where('todo.deleted_at IS NULL', '', '', false)
+            .from('todo').join('collaborations', 'collaborations.todo = todo.id').order_by('created_at').results_async();
+        res.status(200).json({ tasks, shared });
     }
-    async getTask(req, res){
-        const {id} = req.params;
+
+    async getSharedTasks(req, res) {
+        const { userId } = req;
+
+        // Get all shared tasks
+        const shared = await this.db.select('todo.*')
+            .where('collaborations.user', userId)
+            .where('todo.deleted_at IS NULL', '', '', false)
+            .from('todo').join('collaborations', 'collaborations.todo = todo.id').order_by('created_at').results_async();
+        res.status(200).json({ shared });
+    }
+
+    async getMyTasks(req, res) {
+        const { userId } = req;
+        // Get all my tasks
+        const tasks = await this.db.select('*')
+            .where('owner', userId)
+            .where('todo.deleted_at IS NULL', '', '', false)
+            .order_by('created_at').results_async('todo');
+
+        res.status(200).json({ tasks });
+    }
+    async getTask(req, res) {
+        const { id } = req.params;
         const userId = req.userId;
 
         try {
             await this.verifyAcces(id, userId);
             console.log(userId);
-            
+
             const tasks = await this.db.select('*')
                 .where('id', id)
                 .where('todo.deleted_at IS NULL', '', '', false)
                 .order_by('created_at').results_async('todo');
 
-            res.status(200).json({tasks});
+            res.status(200).json({ tasks });
         } catch (error) {
-            res.status(error.statusCode).json({message: error.message, status: 'fail'});
-        }   
+            res.status(error.statusCode).json({ message: error.message, status: 'fail' });
+        }
     }
 
-    async createNew(req, res){
-        const {title, body} = req.body;
+    async createNew(req, res) {
+        const { title, body } = req.body;
         const userId = req.userId;
 
         try {
-            if(!title || !body || title == '' || body == ''){
+            if (!title || !body || title == '' || body == '') {
                 throw new InvariantError('Field title, body required');
             }
-    
-            const input = {id: `task-${nanoid(16)}`, owner: userId, title, body};
+
+            const input = { id: `task-${nanoid(16)}`, owner: userId, title, body };
 
             await this.db.insert_async('todo', input);
 
-            res.status(201).json({status: 'success', message: 'Task berhasil dibuat'});
+            res.status(201).json({ status: 'success', message: 'Task berhasil dibuat' });
         } catch (error) {
-            res.status(error.statusCode).json({message: error.message, status: 'fail'});
+            res.status(error.statusCode).json({ message: error.message, status: 'fail' });
         }
 
     }
 
-    async updateTask(req, res){
-        const {title, body} = req.body;
+    async updateTask(req, res) {
+        const { title, body } = req.body;
         const userId = req.userId;
-        const {id} = req.params;
+        const { id } = req.params;
 
         try {
-            if(!title || !body || title == '' || body == ''){
+            if (!title || !body || title == '' || body == '') {
                 throw new InvariantError('Field title, body required');
             }
             await this.verifyOwner(id, userId);
 
-            const input = {title, body};
+            const input = { title, body };
 
             await this.db.where('id', id).update_async('todo', input);
 
-            res.status(201).json({status: 'success', message: 'Task berhasil diubah'});
+            res.status(201).json({ status: 'success', message: 'Task berhasil diubah' });
         } catch (error) {
-            res.status(error.statusCode).json({message: error.message, status: 'fail'});
+            res.status(error.statusCode).json({ message: error.message, status: 'fail' });
         }
     }
 
-    async deleteTask(req, res){
+    async deleteTask(req, res) {
         const userId = req.userId;
-        const {id} = req.params;
+        const { id } = req.params;
 
         try {
             await this.verifyOwner(id, userId);
-            const input = {deleted_at: formatDateTime()};
-            
+            const input = { deleted_at: formatDateTime() };
+
             await this.db.where('id', id).update_async('todo', input);
 
-            res.status(201).json({status: 'success', message: 'Task berhasil dihapus'});
+            res.status(200).json({ status: 'success', message: 'Task berhasil dihapus' });
         } catch (error) {
-            res.status(error.statusCode).json({message: error.message, status: 'fail'});
+            res.status(error.statusCode).json({ message: error.message, status: 'fail' });
         }
     }
 
-    async changeStatus(req, res){
-        const {id} = req.params;
+    async changeStatus(req, res) {
+        const { id } = req.params;
         const userId = req.userId;
-        const {status} = req.body;
+        const { status } = req.body;
         const statusOptions = [
             'OPEN',
             'ON PROGRES',
@@ -143,22 +142,22 @@ class TasksService {
         ];
         try {
             await this.verifyAcces(id, userId);
-            if(!statusOptions.includes(status.toUpperCase())){
+            if (!statusOptions.includes(status.toUpperCase())) {
                 throw new InvariantError(`Status must one of ${statusOptions.join(',')}`);
             }
 
-            await this.db.where('id', id).update_async('todo', {status: status.toUpperCase()});
-            res.status(201).json({status: 'success', message: 'Status Task berhasil diubah'});
+            await this.db.where('id', id).update_async('todo', { status: status.toUpperCase() });
+            res.status(200).json({ status: 'success', message: 'Status Task berhasil diubah' });
         } catch (error) {
-            res.status(error.statusCode).json({message: error.message, status: 'fail'});
+            res.status(error.statusCode).json({ message: error.message, status: 'fail' });
         }
     }
-    async getShared(req, res){
-        const {id} = req.params;
+    async getShared(req, res) {
+        const { id } = req.params;
         const userId = req.userId;
 
         try {
-            await this.verifyOwner(id, userId);
+            await this.verifyAcces(id, userId);
 
             const users = await this.db.select('users.id, users.username, users.nama')
                 .from('users')
@@ -166,73 +165,67 @@ class TasksService {
                 .where('collaborations.todo', id)
                 .results_async();
 
-            res.status(200).json({users});
+            res.status(200).json({ users });
         } catch (error) {
             console.log(error.message);
-            
-            res.status(error.statusCode).json({message: error.message, status: 'fail'});
+
+            res.status(error.statusCode).json({ message: error.message, status: 'fail' });
         }
     }
 
-    async shareTask(req, res){
-        const {id} = req.params;
+    async shareTask(req, res) {
+        const { id } = req.params;
         const userId = req.userId;
-        const {users} = req.body;
+        const { username } = req.body;
 
         try {
             await this.verifyOwner(id, userId);
-            if(!Array.isArray(users)){
-                throw new InvariantError('Users must in array of string');
-            }
-            if( users.length == 0){
-                throw new InvariantError('Share task to 1 or more users');
+            if (!username || username == '') {
+                throw new InvariantError('Username is required');
             }
 
-            await users.forEach(async (user) => {
-                await this.db.insert_async('collaborations', {id:`collab-${nanoid(16)}`, todo: id, user: user});
-            });
-
-            res.status(201).json({staus: 'success', message: `Berhasil membagikan task ke ${users.join(', ')}`});
+            const u = await this.db.select('id').where('username', username).results_async('users');
+            if (u.length == 1) {
+                const user = u[0].id;
+                await this.db.insert_async('collaborations', { id: `collab-${nanoid(16)}`, todo: id, user: user });
+                res.status(201).json({ staus: 'success', message: `Berhasil membagikan task ke ${user}` });
+            } else {
+                res.status(404).json({ status: 'fail', message: 'User tidak ditemukan' })
+            }
         } catch (error) {
             console.log(error);
-            
-            res.status(error.statusCode).json({message: error.message, status: 'fail'});
+
+            res.status(error.statusCode).json({ message: error.message, status: 'fail' });
         }
     }
 
-    async deleteShare(req, res){
-        const {id} = req.params;
+    async deleteShare(req, res) {
+        const { id, user } = req.params;
         const userId = req.userId;
-        const {users} = req.body;
 
         try {
             await this.verifyOwner(id, userId);
-            if(!Array.isArray(users)){
-                throw new InvariantError('Users must in array of string');
-            }
-            
-            if(users.length == 0){
-                throw new InvariantError('Unshare task from 1 or more users');
+            if (!user || user == '') {
+                throw new InvariantError('user is required');
             }
 
-            await users.forEach(async (user) => {
-                await this.db.where('user', user).where('todo', id).delete_async('collaborations');
-            });
-
-            res.status(200).json({status: 'success', message: `Berhasil menghapus user ${users.join(', ')} dari daftar sharing`});
+            await this.db.where('user', user).where('todo', id).delete_async('collaborations');
+            res.status(200).json({ status: 'success', message: `Berhasil menghapus user ${user} dari daftar sharing` });
         } catch (error) {
-            res.status(error.statusCode).json({message: error.message, status: 'fail'});
+            console.log(error);
+
+            res.status(error.statusCode).json({ message: error.message, status: 'fail' });
         }
     }
 
-    async commentTask(req, res){
-        const {id} = req.params;
+    async commentTask(req, res) {
+        const { id } = req.params;
         const userId = req.userId;
-        const {content} = req.body;
+        const { content } = req.body;
 
         try {
             await this.verifyAcces(id, userId);
-            if(!content || content == ''){
+            if (!content || content == '') {
                 throw new InvariantError('content is required field');
             }
             const input = {
@@ -243,62 +236,65 @@ class TasksService {
             }
 
             await this.db.insert_async('comments', input);
-            res.status(201).json({status: 'success', message: 'Berhasil menambahkan komentar'});
+            res.status(201).json({ status: 'success', message: 'Berhasil menambahkan komentar' });
         } catch (error) {
-            res.status(error.statusCode).json({message: error.message, status: 'fail'});
+            res.status(error.statusCode).json({ message: error.message, status: 'fail' });
         }
     }
 
-    async deleteComment(req, res){
-        const {id, commentid} = req.params;
+    async deleteComment(req, res) {
+        const { id, commentid } = req.params;
         const userId = req.userId;
         console.log(commentid);
-        
+
         try {
             const comment = await this.db.select('*').where('todo', id).where('id', commentid).results_async('comments');
-            if(comment.length == 0){
+            if (comment.length == 0) {
                 throw new NotFoundError('Komentar tidak ditemukan');
             }
 
-            if(comment[0].owner != userId){
+            if (comment[0].owner != userId) {
                 throw new AuthorizationError('Access denied');
             }
 
-            await this.db.where('todo', id).where('owner', userId).where('id', commentid).update_async('comments', {deleted_at: formatDateTime()});
-            res.status(200).json({status: 'success', message: 'Berhasil menghapus komentar'});
+            await this.db.where('todo', id).where('owner', userId).where('id', commentid).update_async('comments', { deleted_at: formatDateTime() });
+            res.status(200).json({ status: 'success', message: 'Berhasil menghapus komentar' });
         } catch (error) {
-            res.status(error.statusCode).json({message: error.message, status: 'fail'});
+            res.status(error.statusCode).json({ message: error.message, status: 'fail' });
         }
     }
 
-    async getComments(req, res){
-        const {id} = req.params;
+    async getComments(req, res) {
+        const { id } = req.params;
         const userId = req.userId;
 
         try {
             await this.verifyAcces(id, userId)
-          
-            const comments = await this.db.select('*').where('deleted_at IS NULL', '', '', false).where('todo', id).results_async('comments');
-            res.status(200).json({status: 'success', comments});
+
+            const comments = await this.db.select('comments.id, users.username, comments.owner, comments.created_at, comments.content')
+                .join('users', 'users.id = comments.owner')
+                .order_by('comments.created_at', 'asc')
+                .where('deleted_at IS NULL', '', '', false).where('todo', id).results_async('comments');
+            res.status(200).json({ status: 'success', comments });
         } catch (error) {
-            res.status(error.statusCode).json({message: error.message, status: 'fail'});
+            res.status(error.statusCode).json({ message: error.message, status: 'fail' });
         }
     }
-    async verifyOwner(taskid, username){
+    async verifyOwner(taskid, username) {
         const task = await this.db.select('owner')
             .where('todo.deleted_at IS NULL', '', '', false)
             .where('id', taskid).row_async('todo');
 
-        if(task.length == 0){
+        if (task.length == 0) {
             throw new NotFoundError('Task tidak ditemukan');
         }
-        
-        if(task[0].owner != username){
+
+        if (task[0].owner != username) {
             throw new AuthorizationError('access denied');
         }
     }
 
-    async verifyAcces(taskid, username){
+    async verifyAcces(taskid, username) {
         try {
             await this.verifyOwner(taskid, username);
         } catch (error) {
@@ -307,8 +303,8 @@ class TasksService {
                 .where('todo.deleted_at IS NULL', '', '', false)
                 .where('collaborations.user', username)
                 .results_async();
-            
-            if(shared.length == 0){
+
+            if (shared.length == 0) {
                 throw new AuthorizationError('access denied');
             }
         }

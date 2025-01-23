@@ -40,7 +40,9 @@ class UsersService {
 
     async login(req, res){
         try {
-            const {username, password} = req.body;            
+            const {username, password} = req.body;
+            console.log(username, password);
+                   
             const user = await this.db.select('*').from('users').where('username', username).row_async();
             
             if(user.length == 0){
@@ -50,7 +52,7 @@ class UsersService {
             // Verify password
             const valid = await bcrypt.compare(password, user[0].password);
             if(!valid){
-                throw AuthenticationError(`Password untuk user ${username} salah!`);
+                throw new AuthenticationError(`Password untuk user ${username} salah!`);
             }
 
             // Create token
@@ -59,6 +61,8 @@ class UsersService {
             res.status(200).json({status: 'success', message: 'berhasil login', token: token})
 
         } catch (error) {
+            console.log(error);
+            
             res.status(error.statusCode).json({message: error.message, status: 'fail'});
         }
     }
